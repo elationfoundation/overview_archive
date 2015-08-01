@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # This file is part of overview archive.
@@ -14,15 +14,18 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the included LICENSE file for details.
 
 # identification
-import magic
 from os import path
 from os.path import abspath
+from urllib.parse import urlparse
+from urllib.request import urlopen
+import magic
 
+# logging
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger("oa.{0}".format(__name__))
 
 
-def get_type(file_path):
+def filetype(file_path):
     if path.exists(file_path) and path.isfile(file_path):
         try:
             file_type = magic.from_file(abspath(file_path), mime=True)
@@ -34,3 +37,20 @@ def get_type(file_path):
         raise IOError("{0} is not a valid path to a file".format(file_path))
     log.debug("filetype for {0} identified as {1}".format(file_path, file_type))
     return file_type
+
+def is_url(link):
+    try:
+        site = urlopen(link)
+        return True
+    except ValueError:
+        return False
+    return False
+
+def is_archive(link):
+    try:
+        parsed_url = urlparse(link)
+        if parsed_url.netloc == 'web.archive.org':
+            return True
+    except ValueError:
+        return False
+    return False

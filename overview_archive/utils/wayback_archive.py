@@ -9,11 +9,35 @@
 # https://github.com/dhamaniasad/waybackcheck/tree/2697166c784f09678665245ea9eb3322b92ea88e
 
 from urllib.request import urlopen
+from urllib.request import urlparse
 from urllib.error import HTTPError
 import json
 
 # command line
 import argparse
+
+# logging
+import logging
+log = logging.getLogger("oa.{0}".format(__name__))
+
+
+def try_safely(remote_url):
+    try:
+        if urlparse(remote_url):
+            try:
+                log.info("Attempting to archive url.")
+                archive = get(remote_url)
+                log.info("Archive Created.")
+                return archive
+            except HTTPError:
+                log.info("Cannot archive object, returning url.")
+                return remote_url
+    except ValueError as _e:
+        log.info("No URL given")
+        log.debug(_e)
+    log.info("Not a valid URL")
+    return remote_url
+
 
 
 def get(inputurl):
@@ -21,15 +45,17 @@ def get(inputurl):
     # wayback machine submission url
     wbkurl = "http://web.archive.org/save/"
     # Submit the url
-    urllib.urlopen(wbkurl+inputurl)
+    urlopen(wbkurl+inputurl)
 
     # Return latest snapshot url
     # wayback machine availability api url
     wbkav = "http://archive.org/wayback/available?url="
     # open wayback availability url
-    wbcheck = urllib.urlopen(wbkav+inputurl)
+    wbcheck = urlopen(wbkav+inputurl)
     # load json data
-    wbcheckjson = json.load(wbcheck)
+    wbcheck_data = wbcheck.read().decode('utf-8')
+    log.debug("Data Received from wayback archive: {0}".format(wbcheck_data))
+    wbcheckjson = json.loads(wbcheck_data)
     archived_snapshots = wbcheckjson['archived_snapshots']
     latest_snapshot = archived_snapshots['closest']['url']
     return latest_snapshot

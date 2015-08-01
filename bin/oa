@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # This file is part of overview archive, a package that makes creating archives of various sources and getting content about them easier for me..
@@ -14,32 +14,36 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the included LICENSE file for details.
 
 import argparse
-import random
-import string
-from os import path, getcwd
+from overview_archive import oa
 
 
 import logging
 logging.basicConfig(level=logging.ERROR)
-log = logging.getLogger(__name__)
+log = logging.getLogger("oa")
 
 def set_logging(verbose=False, debug=False):
     if debug == True:
         log.setLevel("DEBUG")
-    elif verbose = True:
+    elif verbose == True:
         log.setLevel("INFO")
 
 
-
 def parse_arguments():
-    arg_p = argparse.ArgumentParser("Get a summary of some text")
+    parser = argparse.ArgumentParser("Get a summary of some text")
     parser.add_argument("--verbose", "-v",
                         help="Turn verbosity on",
                         action='store_true')
     parser.add_argument("--debug", "-d",
                         help="Turn debugging on",
                         action='store_true')
-    args = arg_p.parse_args()
+    parser.add_argument("--input_path", "-i",
+                        help="The path to retreive an object from.",
+                        required=True)
+    parser.add_argument("--org_output_path", "-o",
+                        help="The path to write the org-object to.")
+    parser.add_argument("--keywords", "-k",
+                        help="The list of keywords to extract from the text (case insensitive).")
+    args = parser.parse_args()
     return args
 
 def usage():
@@ -47,15 +51,29 @@ def usage():
 
 def main():
     args = parse_arguments()
-    set_logging(args.verbose, args.debug)
-    with tempfile.TemporaryDirectory() as temp_dir:
-
-        #Create a local directory for parsing content
-        filename = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
-        local_path = path.join(dir_path, filename)
-        log.debug("temporary file path created for url content at {0}".format(local_path))
-
-
+    dargs = {}
+    if args.verbose:
+        dargs["verbose"] = args.verbose
+    else:
+        dargs["verbose"] = False
+    if args.debug:
+        dargs["debug"] = args.debug
+    else:
+        dargs["debug"] = False
+    if args.org_output_path:
+        dargs["org_output_path"] = args.org_output_path
+    else:
+        dargs["org_output_path"] = False
+    if args.input_path:
+        dargs["input_path"] = args.input_path
+    else:
+        print("You need to specify an input")
+        sys.exit(1)
+    if args.keywords:
+        dargs["keywords"] = args.keywords
+    else:
+        dargs["keywords"] = False
+    oa.go(dargs)
 
 
 

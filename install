@@ -31,9 +31,13 @@ set -x
 
 
 install_dependencies() {
-    apt_install "python-pip"
+    apt_install "python3-pip"
     apt_install "python3"
     pip_install "python-magic"
+    pip_install "numpy"
+    pip_install "sumy"
+    pip_install "scrapy"
+    pip_install "beautifulsoup4"
 }
 
 apt_install(){
@@ -53,20 +57,29 @@ apt_install(){
 
 pip_install(){
     local package="${1}"
-    local installed=$(pip list \
+    local installed=$(pip3 list \
                              | grep -E "^${package}\s\([0-9\.]*\)$" \
                              | grep -o "${package}")
     if [[ "${installed}" = ""  ]]; then
         echo "Installing ${package} via python pip"
-        sudo pip install "${package}"
+        sudo pip3 install "${package}"
         echo "Installation of ${package} completed."
     else
         echo "${package} already installed. Skipping...."
     fi
 }
 
+get_nltk_libraries() {
+    python3 -m nltk.downloader maxent_treebank_pos_tagger
+    python3 -m nltk.downloader maxent_ne_chunker
+    #python3 -m nltk.downloader words
+    python3 -m nltk.downloader stopwords
+}
+
+
 main() {
     install_dependencies
+    get_nltk_libraries
 }
 
 

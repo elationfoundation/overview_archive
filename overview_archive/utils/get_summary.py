@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Packages Used
 
@@ -13,7 +13,7 @@ from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer as Summarizer
 from sumy.nlp.stemmers import Stemmer
 from sumy.utils import get_stop_words
-from url_text_scrape import get_url
+
 # Needed for command line functionality
 
 import sys
@@ -62,9 +62,7 @@ def usage():
 
 def main():
     args = parse_arguments()
-    if args.url:
-        text = get_url(args.url)
-    elif args.input_file:
+    if args.input_file:
         text = get_plain_text(args.input_file)
     else:
         usage()
@@ -74,7 +72,7 @@ def main():
     #translated = translate(summary, dev_key, lang)
     #keywords = check_keywords(translated)
     for i in summary:
-        sys.stdout.write(str(i).decode("utf8").encode("ascii", errors='ignore'))
+        sys.stdout.write(str(i))
         sys.stdout.write("\n")
     sys.exit(0)
 
