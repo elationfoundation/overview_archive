@@ -41,7 +41,7 @@ def from_file(file_path, filetype):
         cleaned, header = from_pdf(file_path)
     elif filetype == 'text/html':
         cleaned, header = from_html(file_path)
-    return cleaned, header
+    return str(cleaned), str(header)
 
 def from_html(file_path):
     with open(file_path, "r") as html_file:
@@ -109,7 +109,7 @@ def wordlist(text):
     stop_words = stopwords.words('english')
     nostop = [x for x in unique_words if x not in stop_words]
     no_blanks = [x for x in nostop if len(x) > 1]
-    return no_blanks
+    return no_blanksq
 
 def termlist(text):
     try:
@@ -118,7 +118,6 @@ def termlist(text):
         pass
     terms = []
     for line in text:
-        print(line)
         clean = line.lower().strip()
         terms.append(clean)
     return terms

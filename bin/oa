@@ -13,6 +13,7 @@
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 # FITNESS FOR A PARTICULAR PURPOSE. See the included LICENSE file for details.
 
+import sys
 import argparse
 from overview_archive import oa
 
@@ -73,7 +74,7 @@ def main():
         dargs["keywords"] = args.keywords
     else:
         dargs["keywords"] = False
-    oa.go(dargs)
+    oa.write_org(dargs)
 
 
 

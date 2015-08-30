@@ -25,7 +25,7 @@ from overview_archive.utils import identify
 from overview_archive.utils import clean_text
 from overview_archive import extract
 from overview_archive.utils import org_mode
-
+from urllib.error import HTTPError
 import logging
 logging.basicConfig(level=logging.ERROR)
 log = logging.getLogger("oa")
@@ -56,6 +56,27 @@ def parse_arguments():
 
 def usage():
     print("overview archive ")
+
+def write_org(args):
+    # Create an org-mode object in case we get errors.
+    # We want to be all the way into the properties before we get exceptions
+    org_mode_object = []
+    org_mode_object.append(org_mode.Entry(1, args["input_path"]))
+    org_mode_object.append(":PROPERTIES:")
+    org_date = org_mode.get_org_date()
+    org_mode_object.append(org_mode.make_property("captured", org_date))
+    org_mode_object.append(org_mode.make_property("failed", True))
+    try:
+        # Try and hope it works.
+        go(args)
+    except HTTPError as _e:
+        org_mode_object.append(org_mode.make_property("error", _e))
+        org_mode_object.append(":END:")
+        with open(args["org_output_path"], 'a') as org_file:
+                for i in org_mode_object:
+                    org_file.write("\n")
+                    org_file.write(str(i))
+
 
 def go(args):
     set_logging(args["verbose"], args["debug"])
@@ -115,17 +136,19 @@ def go(args):
             results['title'] = path.basename(args["input_path"])
 
         # compare words against a keyword file
-        keyword_unison = None
+        keyword_union = None
+        term_match = []
         if args["keywords"]:
-            log.info("starting word extraction")
-            words = extract.wordlist(raw_text)
-            log.debug("words found: {0}".format(words))
             log.info("starting keyword extraction from file")
             with open(args["keywords"], 'r') as keyword_file:
-                keywords = extract.wordlist(keyword_file.read())
+                terms = extract.termlist(keyword_file)
                 log.debug("keywords list: {0}".format(terms))
-            keyword_union = list(set(words) & set(keywords))
-            log.debug("keywords overlapping: {0}".format(keyword_union))
+                for _t in terms:
+                    if _t in raw_text:
+                        term_match.append(_t)
+            if term_match != []:
+                keyword_union = set(term_match)
+                log.debug("keywords overlapping: {0}".format(keyword_union))
             if keyword_union:
                 log.debug("keywords found: {0}".format(keyword_union))
                 results['keywords'] = keyword_union
@@ -158,24 +181,26 @@ def go(args):
             org_mode_object.append(":PROPERTIES:")
             org_date = org_mode.get_org_date()
             org_mode_object.append(org_mode.make_property("captured", org_date))
+            org_mode_object.append(org_mode.make_property("is_archived", results['archived']))
+            org_mode_object.append(org_mode.make_property("filetype", results['filetype']))
             org_mode_object.append(":END:")
-
 
             # archived
             # origin_type
             # results['keywords']
             try:
                 _keywords = results['keywords']
-                org_mode_object.append(org_mode.Entry(2, "keywords"))
+                org_mode_object.append(":keywords:")
                 for e in _keywords:
                     org_mode_object.append(org_mode.Entry(1, e.lower(), starter_char="-"))
+                org_mode_object.append(":END:")
             except KeyError:
                 log.info("Not adding keywords to org object because they were not found.")
 
-            org_mode_object.append(org_mode.Entry(2, "entities"))
+            org_mode_object.append(":entities:")
             for e in entitites:
                 org_mode_object.append(org_mode.Entry(1, e.lower(), starter_char="-"))
-
+            org_mode_object.append(":END:")
             with open(args["org_output_path"], 'a') as org_file:
                 for i in org_mode_object:
                     org_file.write("\n")
