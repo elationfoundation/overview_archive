@@ -6,3 +6,21 @@
 
 * Python 3
 This package uses python 3.
+
+
+# Example commands
+
+Archive a  webpage in a whoosh database in /tmp/
+```
+python3 bin/oa -w /tmp/woosh/index.wdb -i "https://en.wikipedia.org/wiki/Archive"
+```
+
+Archive a webpage in an org-mode file in /tmp
+```
+python3 bin/oa -o /tmp/websites.org -i "https://en.wikipedia.org/wiki/Archive"
+```
+
+Use debugging while Archive a local file to an org-mode file
+```
+python3 bin/oa -o /tmp/websites.org -i "/home/user/Downloads/some_document.pdf" -d
+```

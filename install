@@ -31,13 +31,34 @@ set -x
 
 
 install_dependencies() {
+    apt_install "git"
+    # building xapian
+    # apt_install "build-essential"
+    # apt_install "autoconf"
+    apt_install "libssl-dev"
+    # apt_install "libtool"
+    # apt_install "gettext"
+    # apt_install "uuid-dev"
+
+    apt_install "python3-dev"
     apt_install "python3-pip"
     apt_install "python3"
+    apt_install "libxml2-dev"
+    apt_install "libxslt1-dev"
+    apt_install "zlib1g-dev"
+    apt_install "libicu-dev"
+    apt_install "python-numpy"
+    apt_install "poppler-utils"
+
+
+    apt_install "libffi-dev"
     pip_install "python-magic"
     pip_install "numpy"
     pip_install "sumy"
     pip_install "scrapy"
     pip_install "beautifulsoup4"
+    pip_install "polyglot"
+    pip_install "whoosh"
 }
 
 apt_install(){
@@ -55,6 +76,7 @@ apt_install(){
     fi
 }
 
+
 pip_install(){
     local package="${1}"
     local installed=$(pip3 list \
@@ -69,17 +91,35 @@ pip_install(){
     fi
 }
 
+get_git_package() {
+    local package_dir="${1}"
+    local repo="${2}"
+    if [[ ! -e $package_dir ]]; then
+        git clone "$repo"  "$package_dir"
+    else # Update to the latest version for good measure.
+        git --git-dir="$package_dir"/.git --work-tree="$package_dir"  pull
+    fi
+}
+
+
 get_nltk_libraries() {
-    python3 -m nltk.downloader maxent_treebank_pos_tagger
-    python3 -m nltk.downloader maxent_ne_chunker
-    #python3 -m nltk.downloader words
-    python3 -m nltk.downloader stopwords
+    local nltk_data_dir='/usr/lib/nltk_data'
+    mkdir -p "$nltk_data_dir"
+    python3 -m nltk.downloader maxent_treebank_pos_tagger -d "$nltk_data_dir"
+    python3 -m nltk.downloader maxent_ne_chunker -d "$nltk_data_dir"
+    python3 -m nltk.downloader punkt -d "$nltk_data_dir"
+    python3 -m nltk.downloader words -d "$nltk_data_dir"
+    python3 -m nltk.downloader stopwords -d "$nltk_data_dir"
+    python3 -m nltk.downloader averaged_perceptron_tagger -d "$nltk_data_dir"
 }
 
 
 main() {
+    apt-get update
+    apt-get -y upgrade
     install_dependencies
     get_nltk_libraries
+    #get_xapian
 }
 
 
