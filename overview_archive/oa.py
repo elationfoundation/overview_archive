@@ -19,14 +19,14 @@ import string
 import tempfile
 from os import path, getcwd
 from datetime import datetime
+from collections import namedtuple
 
 from overview_archive.get import get_any
-from overview_archive.utils import identify
-from overview_archive.utils import clean_text
+from overview_archive.utils import clean_text, database, identify, org_mode
 from overview_archive import extract
-from overview_archive.utils import org_mode
 from urllib.error import HTTPError
 import logging
+from uuid import uuid4
 logging.basicConfig(level=logging.ERROR)
 log = logging.getLogger("oa")
 
@@ -42,8 +42,7 @@ def parse_arguments():
     parser.add_argument("--verbose", "-v",
                         help="Turn verbosity on",
                         action='store_true')
-    parser.add_argument("--debug", "-d",
-                        help="Turn debugging on",
+    parser.add_argument("--debug", "-d",                        help="Turn debugging on",
                         action='store_true')
     parser.add_argument("--input_path", "-i",
                         help="The path to retreive an object from.")
@@ -51,6 +50,13 @@ def parse_arguments():
                         help="The path to write the org-object to.")
     parser.add_argument("--keywords", "-k",
                         help="The list of keywords to extract from the text (case insensitive).")
+    parser.add_argument("--capture_entities", "-e",
+                        help="Should the parser capture entities.",
+                        action='store_true')
+    parser.add_argument("--whoosh_dir", "-w",
+                        help="The path to the directory containing the whoosh index to use.")
+    parser.add_argument("--whoosh_text_dir", "-W",
+                        help="The path where raw text should be stored when using Whoosh.")
     args = parser.parse_args()
     return args
 
@@ -82,7 +88,7 @@ def go(args):
     set_logging(args["verbose"], args["debug"])
     results = {}
     # get the date
-    results['date'] = str(datetime.now())
+    results['date'] = datetime.now()
 
     log.debug("getting {0}.".format(args["input_path"]))
     if identify.is_url(args["input_path"]):
@@ -101,7 +107,7 @@ def go(args):
         log.info("Object sucessfully retreived from {0}".format(args["input_path"]))
         log.info("identifying object type")
         results['location'] = object_location
-        # Identify if ovject has been archived.
+        # Identify if object has been archived.
         if identify.is_url(object_location):
             if identify.is_archive(object_location):
                 results['archived'] = True
@@ -135,6 +141,8 @@ def go(args):
             # Use the filename instead
             results['title'] = path.basename(args["input_path"])
 
+        # add raw text to results
+        results['raw_text'] = raw_text
         # compare words against a keyword file
         keyword_union = None
         term_match = []
@@ -158,20 +166,59 @@ def go(args):
             log.info("no keyword file given. Skipping keyword extraction.")
 
         # Getting entitites
-        log.info("capturing entities")
-        entitites = extract.entity_list(raw_text)
-        log.info("entities have been captured")
-        log.debug("entitites found {0}.".format(entitites))
-        results['entities'] = entitites
+        if args["capture_entities"]:
+            log.info("capturing entities")
+            entitites = extract.entity_list(raw_text)
+            log.info("entities have been captured")
+            log.debug("entitites found {0}.".format(entitites))
+            results['entities'] = entitites
 
         # Place cleaned test into a file????
         #_filename = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
         #cleaned_text_path = path.join(temp_dir, _filename)
 
-        # for i in results:
-        #     print("\n", i, " : ", results[i])
+        # Set the directory for whoosh text
+        if args["whoosh_text_dir"]:
+            raw_text_path = "{0}/{1}".format(args["whoosh_text_dir"], uuid4().hex)
+        else:
+            raw_text_path = "/tmp/whoosh/docs/{0}".format(uuid4().hex)
 
-        if args["org_output_path"]:
+        with open(raw_text_path, "w+") as raw_file:
+            raw_file.write(results['raw_text'])
+
+        if args['whoosh_dir']:
+            document = {"path":"",
+                        "title":"",
+                        "archive":"",
+                        "has_archive":"",
+                        "url":"",
+                        "captured_date":"",
+                        "mime_type":"",
+                        "extension":"",
+                        "langauge":"",
+                        "content":""}
+            document["title"] = results['title'].strip()
+            if results['origin_type'] == "url":
+                document["url"] = args["input_path"]
+
+            if results['archived'] == True:
+                document["has_archive"] = True
+                document["archive"] = results['location']
+            else:
+                document["has_archive"] = False
+                document["archive"] = ""
+
+            document["captured_date"] = results['date']
+            document["mime_type"] = results['filetype']
+            document["extension"] = "" # TODO
+            document["language"] = "" # TODO
+            document["path"] = raw_text_path
+            document["content"] = results['raw_text']
+            #print(type(document.content))
+            DB = database.WhooshDB(args['whoosh_dir'])
+            DB.add_document(document)
+
+        elif args["org_output_path"]:
             org_mode_object = []
             if results['origin_type'] == "url":
                 heading = "".join(["[[", results['location'].strip(), "][", results['title'].strip(), "]]" ])

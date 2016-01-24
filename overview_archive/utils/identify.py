@@ -19,6 +19,7 @@ from os.path import abspath
 from urllib.parse import urlparse
 from urllib.request import urlopen
 import magic
+from urllib.error import HTTPError
 
 # logging
 import logging
@@ -42,7 +43,7 @@ def is_url(link):
     try:
         site = urlopen(link)
         return True
-    except ValueError:
+    except (ValueError, HTTPError):
         return False
     return False
 

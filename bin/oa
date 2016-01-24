@@ -44,6 +44,13 @@ def parse_arguments():
                         help="The path to write the org-object to.")
     parser.add_argument("--keywords", "-k",
                         help="The list of keywords to extract from the text (case insensitive).")
+    parser.add_argument("--whoosh_dir", "-w",
+                        help="The path to the directory containing the whoosh index to use.")
+    parser.add_argument("--capture_entities", "-e",
+                        help="Should the parser capture entities.",
+                        action='store_true')
+    parser.add_argument("--whoosh_text_dir", "-W",
+                        help="The path where raw text should be stored when using Whoosh.")
     args = parser.parse_args()
     return args
 
@@ -70,6 +77,18 @@ def main():
     else:
         print("You need to specify an input")
         sys.exit(1)
+    if args.whoosh_dir:
+        dargs["whoosh_dir"] = args.whoosh_dir
+    else:
+        dargs["whoosh_text_dir"] = False
+    if args.whoosh_text_dir:
+        dargs["whoosh_text_dir"] = args.whoosh_text_dir
+    else:
+        dargs["whoosh_text_dir"] = False
+    if args.capture_entities:
+        dargs["capture_entities"] = args.capture_entities
+    else:
+        dargs["capture_entities"] = False
     if args.keywords:
         dargs["keywords"] = args.keywords
     else:
